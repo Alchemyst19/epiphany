@@ -54,11 +54,22 @@ def pretty_member(member):
 
     email = PDSChurch.find_any_email(member)[0]
 
+    mail = f'{member['family']['StreetAddress1']} {member['family']['StreetAddress2']}, {member['family']['StreetCityRec']}, {member['family']['StreetZip']}'
+    #TODO: This doesn't work for some reason. It works in list-changes with similar syntax. Investigate.
+
+    if member['Inactive']:
+        active = "No"
+    else:
+        active = "Yes"
+
     m = {
         'mid'       :   member['MemRecNum'],
         'name'      :   member['first']+' '+member['last'],
         'phones'    :   phones,
-        'email'     :   email,}
+        'email'     :   email,
+        'active'    :   active,
+        'mail'      :   mail
+    }
     
     return m
 
@@ -98,6 +109,9 @@ def find_training(pds_members, training_to_find):
                 'end_date'      :   ed,
                 'result'        :   req['result'],
                 'note'          :   req['note'],
+                'active'        :   mem['active'],
+                'mail'          :   mem['mail'],
+
             })
             #print(m['first']+' '+m['last']+": "+str(recent['end_date']))
     
@@ -122,7 +136,7 @@ def write_xlsx(members, title):
     title_fill = PatternFill(fgColor='0000FF', fill_type='solid')
     title_align = Alignment(horizontal='center')
 
-    last_col = 'F'
+    last_col = 'G'
     
     row = 1
     ws.merge_cells(f'A{row}:{last_col}{row}')
@@ -146,11 +160,13 @@ def write_xlsx(members, title):
     ws[cell].font = title_font
 
     row = row + 1
-    columns = [(f'A{row}', 'Member Name', 30),
-               (f'B{row}', 'Phone Number', 50),
-               (f'C{row}', 'Email Address', 50),
-               (f'D{row}', 'Result', 50),
-               (f'E{row}', 'Notes', 50)]
+    columns = [(f'A{row}', 'Member Name'    ,   30),
+               (f'B{row}', 'Parishoner'     ,   30),
+               (f'C{row}', 'Phone Number'   ,   50),
+               (f'D{row}', 'Email Address'  ,   50),
+               (f'E{row}', 'Mailing Address',   50),
+               (f'F{row}', 'Result'         ,   50),
+               (f'G{row}', 'Notes'          ,   50),]
     
     for cell,value,width in columns:
         ws[cell] = value
@@ -174,25 +190,23 @@ def write_xlsx(members, title):
     # Data rows
     for sd in sorted(members, reverse=True):
         for ed in sorted(members[sd]):
-            _ = ws.cell(row=row, column=1, value=f'Start Date: {sd}')
-            ws.cell(row, 1).fill = PatternFill(fgColor='FFFF00', fill_type='solid')
-            _ = ws.cell(row=row, column=2, value=f'End Date: {ed}')
-            ws.cell(row, 2).fill = PatternFill(fgColor='FFFF00', fill_type='solid')
-
-            row += 1
-
-            
             for mid in sorted(members[sd][ed]):
                 for entry in members[sd][ed][mid]:
 
                     col = 1
                     _append(col=col, row=row, value=entry['name'])
+                    
+                    col += 1
+                    _append(col=col, row=row, value=entry['active'])
 
                     col += 1
                     _append(col=col, row=row, value=entry['phone'])
                 
                     col += 1
                     _append(col=col, row=row, value=entry['email'])
+
+                    col += 1
+                    _append(col=col, row=row, value=entry['mail'])
 
                     col +=1
                     _append(col=col, row=row, value=entry['result'])
