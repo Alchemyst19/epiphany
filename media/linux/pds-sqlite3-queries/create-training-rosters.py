@@ -136,7 +136,7 @@ def write_xlsx(members, title):
     title_fill = PatternFill(fgColor='0000FF', fill_type='solid')
     title_align = Alignment(horizontal='center')
 
-    last_col = 'G'
+    last_col = 'I'
     
     row = 1
     ws.merge_cells(f'A{row}:{last_col}{row}')
@@ -160,13 +160,15 @@ def write_xlsx(members, title):
     ws[cell].font = title_font
 
     row = row + 1
-    columns = [(f'A{row}', 'Member Name'    ,   30),
-               (f'B{row}', 'Parishoner'     ,   30),
-               (f'C{row}', 'Phone Number'   ,   50),
-               (f'D{row}', 'Email Address'  ,   50),
-               (f'E{row}', 'Mailing Address',   50),
-               (f'F{row}', 'Result'         ,   50),
-               (f'G{row}', 'Notes'          ,   50),]
+    columns = [(f'A{row}', 'Start Date'     ,   30),
+               (f'B{row}', 'End Date'       ,   30),
+               (f'C{row}', 'Member Name'    ,   30),
+               (f'D{row}', 'Parishoner'     ,   30),
+               (f'E{row}', 'Phone Number'   ,   50),
+               (f'F{row}', 'Email Address'  ,   50),
+               (f'G{row}', 'Mailing Address',   50),
+               (f'H{row}', 'Result'         ,   50),
+               (f'I{row}', 'Notes'          ,   50),]
     
     for cell,value,width in columns:
         ws[cell] = value
@@ -194,6 +196,12 @@ def write_xlsx(members, title):
                 for entry in members[sd][ed][mid]:
 
                     col = 1
+                    _append(col=col, row=row, value=entry['start_date'])
+
+                    col += 1
+                    _append(col=col, row=row, value=entry['end_date'])
+
+                    col += 1
                     _append(col=col, row=row, value=entry['name'])
                     
                     col += 1
