@@ -54,10 +54,12 @@ def pretty_member(member):
 
     email = PDSChurch.find_any_email(member)[0]
 
-    mail = f'{member['family']['StreetAddress1']} {member['family']['StreetAddress2']}, {member['family']['StreetCityRec']}, {member['family']['StreetZip']}'
-    #TODO: This doesn't work for some reason. It works in list-changes with similar syntax. Investigate.
+    mail1 = member['family']['StreetAddress1']
+    mail2 = member['family']['StreetAddress2']
+    mail4 = member['family']['StreetZip']
+    mail = f'{mail1} {mail2}, {mail4}'
 
-    if member['Inactive']:
+    if (int)(member['family']['ParKey']) > 9000:
         active = "No"
     else:
         active = "Yes"
@@ -90,8 +92,8 @@ def find_training(pds_members, training_to_find):
                 continue
             reqcount += 1
             mem = pretty_member(m)
-            sd = req['start_date']
-            ed = req['end_date']
+            sd = req['start_date'].isoformat()
+            ed = req['end_date'].isoformat()
             mid = mem['mid']
             if sd not in out:
                 out[sd] = dict()
