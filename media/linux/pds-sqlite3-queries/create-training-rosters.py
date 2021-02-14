@@ -14,6 +14,7 @@ import ECC
 import Google
 import PDSChurch
 import GoogleAuth
+import copy
 
 from datetime import date
 from datetime import datetime
@@ -33,11 +34,18 @@ from pprint import pformat
 gapp_id         = 'client_id.json'
 guser_cred_file = 'user-credentials.json'
 
+now = datetime.now()
+us = timedelta(microseconds=now.microsecond)
+now = now - us
+timestamp = ('{year:04}-{mon:02}-{day:02} {hour:02}:{min:02}'
+                .format(year=now.year, mon=now.month, day=now.day,
+                        hour=now.hour, min=now.minute))
+
 trainings   = [
     {
-        "title"     : 'Cup and Plate',
+        "title"     : 'Communion Minister',
         "gsheet_id" : '1zWsmd5wnyVLwGRjBRX-wEe6xxJL2Bt0NLQAJBdDk4a0',
-        'pds_type'  : 'Cup and Plate training',
+        'pds_type'  : 'Communion Minister training',
     },
 ]
 
@@ -52,12 +60,20 @@ def pretty_member(member):
             val = '{ph} {type}'.format(ph=phone['number'], type=phone['type'])
             phones.append(val)
 
-    email = PDSChurch.find_any_email(member)[0]
+    ministries = {'weekday'     :   False,
+                  'weekend'     :   False,
+                  'homebound'   :   False,}
+    key = 'active_ministries'
+    if key in member:
+        for ministry in member[key]:
+            if ministry['Description'] == 'Weekend Communion':
+                ministries['weekend'] = True
+            if ministry['Description'] == 'Weekday Communion':
+                ministries['weekday'] = True
+            if ministry['Description'] == 'Homebound Communion':
+                ministries['homebound'] = True
 
-    mail1 = member['family']['StreetAddress1']
-    mail2 = member['family']['StreetAddress2']
-    mail4 = member['family']['StreetZip']
-    mail = f'{mail1} {mail2}, {mail4}'
+    email = PDSChurch.find_any_email(member)[0]
 
     if (int)(member['family']['ParKey']) > 9000:
         active = "No"
@@ -67,10 +83,12 @@ def pretty_member(member):
     m = {
         'mid'       :   member['MemRecNum'],
         'name'      :   member['first']+' '+member['last'],
-        'phones'    :   phones,
         'email'     :   email,
+        'phones'    :   phones,
         'active'    :   active,
-        'mail'      :   mail
+        'weekend'   :   ministries['weekend'],
+        'weekday'   :   ministries['weekday'],
+        'homebound' :   ministries['homebound']
     }
     
     return m
@@ -92,141 +110,257 @@ def find_training(pds_members, training_to_find):
                 continue
             reqcount += 1
             mem = pretty_member(m)
-            sd = req['start_date'].isoformat()
-            ed = req['end_date'].isoformat()
+            sd = req['start_date']
+            ed = req['end_date']
             mid = mem['mid']
             if sd not in out:
                 out[sd] = dict()
-            if ed not in out[sd]:
-                out[sd][ed] = dict()
-            if mid not in out[sd][ed]:
-                out[sd][ed][mid] = list()
-            out[sd][ed][mid].append({
+            if mid not in out[sd]:
+                out[sd][mid] = list()
+            out[sd][mid].append({
                 'mid'           :   mid,
                 'name'          :   mem['name'],
-                'phone'         :   mem['phones'][0],
                 'email'         :   mem['email'],
-                'description'   :   req['description'],
+                'phone'         :   mem['phones'][0],
                 'start_date'    :   sd,
                 'end_date'      :   ed,
-                'result'        :   req['result'],
-                'note'          :   req['note'],
+                'stage'         :   req['result'],
                 'active'        :   mem['active'],
-                'mail'          :   mem['mail'],
-
+                'weekend'       :   mem['weekend'],
+                'weekday'       :   mem['weekday'],
+                'homebound'     :   mem['homebound'],
+                'note'          :   req['note'],
             })
-            #print(m['first']+' '+m['last']+": "+str(recent['end_date']))
+            print(m['first']+' '+m['last']+": "+str(ed))
     
+    active_out = dict()
+    for sd in out:
+        for mid in out[sd]:
+            for line in out[sd][mid]:
+                print(line['end_date'])
+                if line['end_date'] > now.date():
+                    if mid not in active_out:
+                        active_out[mid] = {
+                            'mid'           :   mid,
+                            'name'          :   mem['name'],
+                            'email'         :   mem['email'],
+                            'phone'         :   mem['phones'][0],
+                            'start_date'    :   sd,
+                            'end_date'      :   ed,
+                            'weekend'       :   mem['weekend'],
+                            'weekday'       :   mem['weekday'],
+                            'homebound'     :   mem['homebound'],
+                            'note'          :   req['note'],
+                            }
+                    elif line['start_date'] > active_out[mid]['start_date']:
+                        active_out[mid] = {
+                            'mid'           :   mid,
+                            'name'          :   mem['name'],
+                            'email'         :   mem['email'],
+                            'phone'         :   mem['phones'][0],
+                            'start_date'    :   sd,
+                            'end_date'      :   ed,
+                            'weekend'       :   mem['weekend'],
+                            'weekday'       :   mem['weekday'],
+                            'homebound'     :   mem['homebound'],
+                            'note'          :   req['note'],
+                            }
+                    else:
+                        continue
+            else:
+                continue
+    
+    expired_out = dict()
+    for sd in out:
+        for mid in out[sd]:
+            for line in out[sd][mid]: 
+                if line['end_date'] < now.date():
+                    if mid not in expired_out:
+                        expired_out[mid] = {
+                            'mid'           :   mid,
+                            'name'          :   mem['name'],
+                            'email'         :   mem['email'],
+                            'phone'         :   mem['phones'][0],
+                            'start_date'    :   sd,
+                            'end_date'      :   ed,
+                            'weekend'       :   mem['weekend'],
+                            'weekday'       :   mem['weekday'],
+                            'homebound'     :   mem['homebound'],
+                            'note'          :   req['note'],
+                            }
+                    elif line['start_date'] > active_out[mid]['start_date']:
+                        active_out[mid] = {
+                            'mid'           :   mid,
+                            'name'          :   mem['name'],
+                            'email'         :   mem['email'],
+                            'phone'         :   mem['phones'][0],
+                            'start_date'    :   sd,
+                            'end_date'      :   ed,
+                            'weekend'       :   mem['weekend'],
+                            'weekday'       :   mem['weekday'],
+                            'homebound'     :   mem['homebound'],
+                            'note'          :   req['note'],
+                            }
+                    else:
+                        continue
+                else:
+                    continue
+        
     print(f"Found {reqcount} training records")
-    return out
+    return out, active_out, expired_out
 
-def write_xlsx(members, title):
-    now = datetime.now()
-    us = timedelta(microseconds=now.microsecond)
-    now = now - us
+def write_xlsx(all_entries, active_entries, expired_entries, title):
+    def _create_everything_columns(row):
+        columns = [(f'A{row}', 'Start Date'             ,   30),
+                   (f'B{row}', 'End Date'               ,   30),
+                   (f'C{row}', 'Member Name'            ,   30),
+                   (f'D{row}', 'Email Address'          ,   30),
+                   (f'E{row}', 'Phone Number'           ,   50),
+                   (f'F{row}', 'Stage of Certification' ,   50),
+                   (f'G{row}', 'Active Parishoner?'     ,   50),
+                   (f'H{row}', 'Weekend?'               ,   50),
+                   (f'I{row}', 'Weekday?'               ,   50),
+                   (f'J{row}', 'Homebound?'             ,   50),
+                   (f'K{row}', 'Notes'                  ,   50),]
+        return columns
 
-    timestamp = ('{year:04}-{mon:02}-{day:02} {hour:02}:{min:02}'
-                .format(year=now.year, mon=now.month, day=now.day,
-                        hour=now.hour, min=now.minute))
-    filename = (f'{title} trainings as of {timestamp}.xlsx')
+    def _create_active_columns(row):
+        columns = [(f'A{row}', 'Start Date'             ,   30),
+                   (f'B{row}', 'End Date'               ,   30),
+                   (f'C{row}', 'Member Name'            ,   30),
+                   (f'D{row}', 'Email Address'          ,   30),
+                   (f'E{row}', 'Phone Number'           ,   50),
+                   (f'F{row}', 'Weekend?'               ,   50),
+                   (f'G{row}', 'Weekday?'               ,   50),
+                   (f'H{row}', 'Homebound?'             ,   50),
+                   (f'I{row}', 'Notes'                  ,   50),]
+        return columns
 
-    wb = Workbook()
-    ws = wb.active
+    def _create_expired_columns(row):
+        columns = [(f'A{row}', 'Start Date'             ,   30),
+                   (f'B{row}', 'End Date'               ,   30),
+                   (f'C{row}', 'Member Name'            ,   30),
+                   (f'D{row}', 'Email Address'          ,   30),
+                   (f'E{row}', 'Phone Number'           ,   50),
+                   (f'F{row}', 'Weekend?'               ,   50),
+                   (f'G{row}', 'Weekday?'               ,   50),
+                   (f'H{row}', 'Homebound?'             ,   50),
+                   (f'I{row}', 'Notes'                  ,   50),]
+        return columns
 
-    # Title rows + set column widths
-    title_font = Font(color='FFFF00')
-    title_fill = PatternFill(fgColor='0000FF', fill_type='solid')
-    title_align = Alignment(horizontal='center')
+    def _write_data_rows(values, sheet_type, row):
+        print(f'Writing sheet: {sheet_type}')
+        for sd in sorted(values, reverse=True):
+            for mid in sorted(values[sd]):
+                if sheet_type == 'everything':
+                    for entry in values[sd][mid]:
+                        col = 1
+                        print(f'col = {col}, {type(col)}, row = {row}, {type(row)}')
+                        _ = ws.cell(column=col, row=row, value=entry['start_date'])
 
-    last_col = 'I'
+                        col += 1
+                        _ = ws.cell(column=col, row=row, value=entry['end_date'])
+
+                        col += 1
+                        _ = ws.cell(column=col, row=row, value=entry['name'])
+                        
+                        col += 1
+                        _ = ws.cell(column=col, row=row, value=entry['email'])
+
+                        col += 1
+                        _ = ws.cell(column=col, row=row, value=entry['phone'])
+                    
+                        if sheet_type == 'everything':
+                            col += 1
+                            _ = ws.cell(column=col, row=row, value=entry['stage'])
+
+                            col += 1
+                            _ = ws.cell(column=col, row=row, value=entry['active'])
+
+                        col +=1
+                        _ = ws.cell(column=col, row=row, value=entry['weekend'])
+
+                        col +=1
+                        _ = ws.cell(column=col, row=row, value=entry['weekday'])
+
+                        col +=1
+                        _ = ws.cell(column=col, row=row, value=entry['homebound'])
+                    
+                        col += 1
+                        _ = ws.cell(column=col, row=row, value=entry['note'])
+                    
+                        row += 1
+
+    def _create_sheet(sheet_type):
+        # Title rows + set column widths
+        title_font = Font(color='FFFF00')
+        title_fill = PatternFill(fgColor='0000FF', fill_type='solid')
+        title_align = Alignment(horizontal='center')
+
+        last_col = 'I'
     
-    row = 1
-    ws.merge_cells(f'A{row}:{last_col}{row}')
-    cell = f'A{row}'
-    ws[cell] = f'Training: {title}'
-    ws[cell].fill = title_fill
-    ws[cell].font = title_font
-
-    row = row + 1
-    ws.merge_cells(f'A{row}:{last_col}{row}')
-    cell = f'A{row}'
-    ws[cell] = f'Last updated: {now}'
-    ws[cell].fill = title_fill
-    ws[cell].font = title_font
-
-    row = row + 1
-    ws.merge_cells(f'A{row}:{last_col}{row}')
-    cell = f'A{row}'
-    ws[cell] = ''
-    ws[cell].fill = title_fill
-    ws[cell].font = title_font
-
-    row = row + 1
-    columns = [(f'A{row}', 'Start Date'     ,   30),
-               (f'B{row}', 'End Date'       ,   30),
-               (f'C{row}', 'Member Name'    ,   30),
-               (f'D{row}', 'Parishoner'     ,   30),
-               (f'E{row}', 'Phone Number'   ,   50),
-               (f'F{row}', 'Email Address'  ,   50),
-               (f'G{row}', 'Mailing Address',   50),
-               (f'H{row}', 'Result'         ,   50),
-               (f'I{row}', 'Notes'          ,   50),]
-    
-    for cell,value,width in columns:
-        ws[cell] = value
+        row = 1
+        ws.merge_cells(f'A{row}:{last_col}{row}')
+        cell = f'A{row}'
+        ws[cell] = f'Training: {title}'
         ws[cell].fill = title_fill
         ws[cell].font = title_font
-        ws[cell].alignment = title_align
-        ws.column_dimensions[cell[0]].width = width
 
-    # Freeze the title row
-    row = row + 1
-    ws.freeze_panes = ws[f'A{row}']
+        row = row + 1
+        ws.merge_cells(f'A{row}:{last_col}{row}')
+        cell = f'A{row}'
+        ws[cell] = f'Last updated: {now}'
+        ws[cell].fill = title_fill
+        ws[cell].font = title_font
+
+        row = row + 1
+        ws.merge_cells(f'A{row}:{last_col}{row}')
+        cell = f'A{row}'
+        ws[cell] = ''
+        ws[cell].fill = title_fill
+        ws[cell].font = title_font
+
+        # Freeze the title row
+        row = row + 1
+        ws.freeze_panes = ws[f'A{row}']
+
+        row = row + 1
+        columns = list()
+        if(sheet_type == 'everything'):
+            columns = _create_everything_columns(row)
+        elif(sheet_type == 'active'):
+            columns = _create_active_columns(row)
+        elif(sheet_type == 'expired'):
+            columns = _create_expired_columns(row)
+
+        for cell,value,width in columns:
+            ws[cell] = value
+            ws[cell].fill = title_fill
+            ws[cell].font = title_font
+            ws[cell].alignment = title_align
+            ws.column_dimensions[cell[0]].width = width
+
+        if(sheet_type == 'everything'):
+            _write_data_rows(all_entries, sheet_type, row)
+        elif(sheet_type == 'active'):
+            _write_data_rows(active_entries, sheet_type, row)
+        elif(sheet_type == 'expired'):
+            _write_data_rows(expired_entries, sheet_type, row)
 
     #---------------------------------------------------------------------
 
-    def _append(row, col, value):
-        if value is None or len(value) == 0:
-            return
+    filename = (f'{title} trainings as of {timestamp}.xlsx')
 
-        _ = ws.cell(row=row, column=col, value=value)
+    wb = Workbook()
 
-    # Data rows
-    for sd in sorted(members, reverse=True):
-        for ed in sorted(members[sd]):
-            for mid in sorted(members[sd][ed]):
-                for entry in members[sd][ed][mid]:
+    ws = wb.create_sheet('Everything')
+    _create_sheet('everything')
 
-                    col = 1
-                    _append(col=col, row=row, value=entry['start_date'])
+    ws = wb.create_sheet('Active')
+    _create_sheet('active')
 
-                    col += 1
-                    _append(col=col, row=row, value=entry['end_date'])
-
-                    col += 1
-                    _append(col=col, row=row, value=entry['name'])
-                    
-                    col += 1
-                    _append(col=col, row=row, value=entry['active'])
-
-                    col += 1
-                    _append(col=col, row=row, value=entry['phone'])
-                
-                    col += 1
-                    _append(col=col, row=row, value=entry['email'])
-
-                    col += 1
-                    _append(col=col, row=row, value=entry['mail'])
-
-                    col +=1
-                    _append(col=col, row=row, value=entry['result'])
-                
-                    col += 1
-                    _append(col=col, row=row, value=entry['note'])
-                
-                    row += 1
-    
-    #--------------------------------------------------------------------------
+    ws = wb.create_sheet('Expired')
+    _create_sheet('expired')
 
     wb.save(filename)
     print(f'Wrote {filename}')
@@ -236,29 +370,30 @@ def write_xlsx(members, title):
 
 #---------------------------------------------------------------------------
 
-def create_roster(pds_members, training, google, log):
+def create_roster(pds_members, training, google, log, dry_run):
     # Find training logs
-    members = find_training(pds_members=pds_members,
+    entries, active_entries, expired_entries = find_training(pds_members=pds_members,
                       training_to_find=training['pds_type'])
-    if members is None or len(members) == 0:
+    if entries is None or len(entries) == 0:
         print("No trainings of type: {train}".format(train=training['title']))
     
     # Create xlsx file
-    filename = write_xlsx(members=members, title=training['title'])
+    filename = write_xlsx(all_entries=entries, active_entries=active_entries, expired_entries=expired_entries, title=training['title'])
     print("Wrote temp XLSX file: {f}".format(f=filename))
 
-    # Upload xlsx to Google
-    upload_overwrite(filename=filename, google=google, file_id=training['gsheet_id'],
+    if not dry_run:
+        # Upload xlsx to Google
+        upload_overwrite(filename=filename, google=google, file_id=training['gsheet_id'],
                      log=log)
-    log.debug("Uploaded XLSX file to Google")
+        log.debug("Uploaded XLSX file to Google")
 
-    # Remove temp local xlsx file
-    try:
-        os.unlink(filename)
-        log.debug("Unlinked temp XLSX file")
-    except:
-        log.info("Failed to unlink temp XLSX file!")
-        log.error(traceback.format_exc())
+        # Remove temp local xlsx file
+        try:
+            os.unlink(filename)
+            log.debug("Unlinked temp XLSX file")
+        except:
+            log.info("Failed to unlink temp XLSX file!")
+            log.error(traceback.format_exc())
 
 #---------------------------------------------------------------------------
 
@@ -297,10 +432,16 @@ def upload_overwrite(filename, google, file_id, log):
 def setup_cli_args():
     tools.argparser.add_argument('--logfile',
                                  help='Also save to a logfile')
+
     tools.argparser.add_argument('--debug',
                                  action='store_true',
                                  default=False,
                                  help='Be extra verbose')
+
+    tools.argparser.add_argument('--dry_run',
+                                 action='store_true',
+                                 default=False,
+                                 help='Do not upload to Google')
 
     tools.argparser.add_argument('--sqlite3-db',
                                  required=True,
@@ -340,17 +481,22 @@ def main():
                     'api_name'    : 'drive',
                     'api_version' : 'v3', },
     }
-    services = GoogleAuth.service_oauth_login(apis,
-                                              app_json=args.app_id,
-                                              user_json=args.user_credentials,
-                                              log=log)
-    google = services['drive']
+    if not args.dry_run:
+        services = GoogleAuth.service_oauth_login(apis,
+                                                app_json=args.app_id,
+                                                user_json=args.user_credentials,
+                                                log=log)
+        google = services['drive']
+    
+    if args.dry_run:
+        google = ''
 
     for training in trainings:
         create_roster(pds_members=pds_members,
                       training=training,
                       google=google,
-                      log=log)
+                      log=log,
+                      dry_run=args.dry_run)
 
     # All done
     pds.connection.close()
