@@ -115,11 +115,11 @@ class EverythingSheet(MetaSheet):
         MetaSheet.__init__(self, ws, trainingdata)
         
     def create_roster(self, title):
-        (row, ws) = self.create_sheet(self, title, want_everything = True)
+        (row, ws) = self.create_sheet(title, want_everything = True)
         for mid in sorted(self.values, reverse=True):
             for sd in sorted(self.values[mid]):
                 for entry in self.values[mid][sd]:
-                    ws = self.create_entry(self, ws, entry, row)
+                    ws = self.create_entry(ws, entry, row)
                     ws[f'J{row}'] = entry['stage']
                     ws[f'K{row}'] = entry['active']
 
@@ -133,7 +133,7 @@ class ActiveSheet(MetaSheet):
         MetaSheet.__init__(self, ws, trainingdata)
         
     def create_roster(self, title):
-        (row, ws) = self.create_sheet(self, title, want_everything = False)
+        (row, ws) = self.create_sheet(title, want_everything = False)
         for mid in sorted(self.values, reverse=True):
             most_recent = { 'end_date' : now.date() }
             for sd in sorted(self.values[mid]):
@@ -141,7 +141,7 @@ class ActiveSheet(MetaSheet):
                     if entry['end_date'] > most_recent['end_date']:
                         most_recent   = entry
             if most_recent['end_date'] != now.date():
-                ws = self.create_entry(self, ws, most_recent, row)
+                ws = self.create_entry(ws, most_recent, row)
                 row += 1
         return row
 
@@ -152,7 +152,7 @@ class ExpiredSheet(MetaSheet):
         MetaSheet.__init__(self, ws, trainingdata)
         
     def create_roster(self, title):
-        (row, ws) = self.create_sheet(self, title, want_everything = False)
+        (row, ws) = self.create_sheet(title, want_everything = False)
         for mid in sorted(self.values, reverse=True):
             most_recent = { 'end_date' : now.date() }
             for sd in sorted(self.values[mid]):
@@ -161,6 +161,6 @@ class ExpiredSheet(MetaSheet):
                         if (entry['end_date'] > most_recent['end_date']) or (most_recent['end_date'] == now.date()):
                             most_recent = entry
             if most_recent['end_date'] != now.date():
-                ws = self.create_entry(self, ws, most_recent, row)
+                ws = self.create_entry(ws, most_recent, row)
                 row += 1
         return row

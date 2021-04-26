@@ -74,7 +74,7 @@ def pretty_member(member):
 
     email = PDSChurch.find_any_email(member)[0]
 
-    if PDSChurch.is_parishoner():
+    if PDSChurch.is_parishioner(member['family']):
         active = "No"
     else:
         active = "Yes"
@@ -92,7 +92,7 @@ def pretty_member(member):
     
     return m
 
-def pds_find_training(pds_members, training_to_find):
+def pds_find_training(pds_members, training_to_find, log):
     
     out = dict()
     reqcount = 0
@@ -135,7 +135,7 @@ def pds_find_training(pds_members, training_to_find):
         log.info(f"Found {reqcount} training records")
         return out
 
-def write_xlsx(title, trainingdata):
+def write_xlsx(title, trainingdata, log):
 
     filename = (f'{title} trainings as of {timestamp}.xlsx')
 
@@ -161,7 +161,7 @@ def write_xlsx(title, trainingdata):
 def create_roster(trainingdata, training, google, log, dry_run):
     
     # Create xlsx file
-    filename = write_xlsx(training['title'], trainingdata)
+    filename = write_xlsx(training['title'], trainingdata, log)
     log.info("Wrote temp XLSX file: {f}".format(f=filename))
 
     # Upload xlsx to Google
@@ -272,7 +272,7 @@ def main():
         google = services['drive']
 
     for training in trainings:
-        training_data = pds_find_training(pds_members, training)
+        training_data = pds_find_training(pds_members, training, log)
         create_roster(training_data, training, google, log, args.dry_run)
 
 
