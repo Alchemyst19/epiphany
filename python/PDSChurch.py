@@ -272,10 +272,8 @@ def _link_families_members(families, members):
 def _delete_non_parishioners(families, members):
     to_delete = list()
 
-    # Look for family ParKey >= 10,000
     for fid, f in families.items():
-        parkey = int(f['ParKey'])
-        if parkey >= 9000 or f['Visitor']:
+        if not is_parishioner(f):
             f = families[fid]
             for m in f['members']:
                 mid = m['MemRecNum']
@@ -559,15 +557,16 @@ def _link_member_id(members, member_source_field, member_dest_field,
 # Transform the list of all family fund history (i.e., individual
 # contributions) to be:
 #
-# families['funding'][fid][year][fund_id], a dictionary containing:
+# families[fid]['funds'][2 digit year][fund_id], a dictionary containing:
 #
 # * 'fund': PDS DB entry from FundSetup_DB
+# * 'fund_rate': ...JMS
 # * 'history': array of entries, one per contribution of the family that year
 # on that fund, each entry containing a dictionary of:
 #     * 'activity': name of fund from FuncAct (don't both copying over
 #        other data -- the fund name is really the only important thing)
-#     * 'fund_id': same as fund_id index in "funding"
-#     * 'year': same as year index in "fundung"
+#     * 'fund_id': same as fund_id index in "funds"
+#     * 'year': same 2-digit year as year index in "funds"
 #     * 'item': detailed dictionary of information about the contribution.
 #       'FEAmt', 'FEComment', 'FEDate' are probably the only relevant fields
 #       from this dictionary.
@@ -1137,3 +1136,12 @@ def union_of_member_dicts(members1, members2):
         out[x] = y
 
     return out
+
+#-----------------------------------------------------------------------------
+
+def is_parishioner(family):
+    parkey = int(family['ParKey'])
+
+    # Look for family ParKey >= 9,000 or if they have the "Visitor"
+    # flag set
+    return False if parkey >= 9000 or family['Visitor'] else True
