@@ -7,14 +7,10 @@ sys.path.insert(0, '../../../python')
 
 import os
 
-import logging.handlers
-import logging
-
 import ECC
 import Google
 import PDSChurch
 import GoogleAuth
-import copy
 
 from datetime import date
 from datetime import datetime
@@ -78,7 +74,7 @@ def pretty_member(member):
 
     email = PDSChurch.find_any_email(member)[0]
 
-    if (int)(member['family']['ParKey']) > 9000:
+    if PDSChurch.is_parishoner():
         active = "No"
     else:
         active = "Yes"
@@ -96,9 +92,7 @@ def pretty_member(member):
     
     return m
 
-def find_training(pds_members, training_to_find):
-    def _dt_to_int(datetime):
-        return 1000000*datetime.month + 10000*datetime.day + datetime.year
+def pds_find_training(pds_members, training_to_find):
     
     out = dict()
     reqcount = 0
@@ -133,13 +127,12 @@ def find_training(pds_members, training_to_find):
                 'homebound'     :   mem['homebound'],
                 'note'          :   req['note'],
             })
-            print(m['first']+' '+m['last']+": "+str(sd))
     
-    if out is None or len(out) == 0:
-        print("No trainings of type: {train} found".format(train=training_to_find['title']))
+    if len(out) == 0:
+        log.info(f"No trainings of type: {training_to_find['title']} found")
         return None
     else:    
-        print(f"Found {reqcount} training records")
+        log.info(f"Found {reqcount} training records")
         return out
 
 def write_xlsx(title, trainingdata):
@@ -158,7 +151,7 @@ def write_xlsx(title, trainingdata):
     expired.create_roster(title)
 
     wb.save(filename)
-    print(f'Wrote {filename}')
+    log.debug(f'Wrote {filename}')
 
     return filename
 
@@ -169,7 +162,7 @@ def create_roster(trainingdata, training, google, log, dry_run):
     
     # Create xlsx file
     filename = write_xlsx(training['title'], trainingdata)
-    print("Wrote temp XLSX file: {f}".format(f=filename))
+    log.info("Wrote temp XLSX file: {f}".format(f=filename))
 
     # Upload xlsx to Google
     if not dry_run:
@@ -227,7 +220,7 @@ def setup_cli_args():
                                  default=False,
                                  help='Be extra verbose')
 
-    tools.argparser.add_argument('--dry_run',
+    tools.argparser.add_argument('--dry-run',
                                  action='store_true',
                                  default=False,
                                  help='Do not upload to Google')
@@ -270,7 +263,7 @@ def main():
                     'api_name'    : 'drive',
                     'api_version' : 'v3', },
     }
-    google = ''
+    google = None
     if not args.dry_run:
         services = GoogleAuth.service_oauth_login(apis,
                                                 app_json=args.app_id,
@@ -279,8 +272,8 @@ def main():
         google = services['drive']
 
     for training in trainings:
-        trainingdata = find_training(pds_members, training)
-        create_roster(trainingdata, training, google, log, args.dry_run)
+        training_data = pds_find_training(pds_members, training)
+        create_roster(training_data, training, google, log, args.dry_run)
 
 
     # All done
