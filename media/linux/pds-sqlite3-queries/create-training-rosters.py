@@ -34,8 +34,6 @@ gapp_id         = 'client_id.json'
 guser_cred_file = 'user-credentials.json'
 
 now = datetime.now()
-us = timedelta(microseconds=now.microsecond)
-now = now - us
 timestamp = ('{year:04}-{mon:02}-{day:02} {hour:02}:{min:02}'
                 .format(year=now.year, mon=now.month, day=now.day,
                         hour=now.hour, min=now.minute))
@@ -74,20 +72,20 @@ def pretty_member(member):
 
     email = PDSChurch.find_any_email(member)[0]
 
-    if PDSChurch.is_parishioner(member['family']):
-        active = "No"
-    else:
+    if PDSChurch.is_parishioner(member['family']) and (member['Deceased'] == False) and (member['Inactive'] == False):
         active = "Yes"
+    else:
+        active = "No"
 
     m = {
-        'mid'       :   member['MemRecNum'],
-        'name'      :   member['first']+' '+member['last'],
-        'email'     :   email,
-        'phones'    :   phones,
-        'active'    :   active,
-        'weekend'   :   ministries['weekend'],
-        'weekday'   :   ministries['weekday'],
-        'homebound' :   ministries['homebound']
+        'mid'           :   member['MemRecNum'],
+        'name'          :   member['first']+' '+member['last'],
+        'email'         :   email,
+        'phones'        :   phones,
+        'active'        :   active,
+        'weekend'       :   ministries['weekend'],
+        'weekday'       :   ministries['weekday'],
+        'homebound'     :   ministries['homebound']
     }
     
     return m
@@ -128,7 +126,7 @@ def pds_find_training(pds_members, training_to_find, log):
                 'note'          :   req['note'],
             })
     
-    if len(out) == 0:
+    if reqcount == 0:
         log.info(f"No trainings of type: {training_to_find['title']} found")
         return None
     else:    

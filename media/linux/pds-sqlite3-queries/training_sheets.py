@@ -22,7 +22,6 @@ from datetime import datetime
 from datetime import timedelta
 
 from oauth2client import tools
-from apiclient.http import MediaFileUpload
 
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
@@ -34,9 +33,9 @@ now = datetime.now()
 
 class MetaSheet:
 
-    def __init__(self, ws, trainingdata):
+    def __init__(self, ws, training_data):
         self.ws = ws
-        self.values = trainingdata
+        self.values = training_data
         self.roster = list()
 
     def create_sheet(self, title, want_everything):
@@ -105,21 +104,19 @@ class MetaSheet:
         ws[f'H{row}'] = entry['homebound']
         ws[f'I{row}'] = entry['note']
 
-        return ws
-
 class EverythingSheet(MetaSheet):
 
-    def __init__(self, wb, trainingdata):
+    def __init__(self, wb, training_data):
         ws = wb['Sheet']
         ws.title = 'Everything'
-        MetaSheet.__init__(self, ws, trainingdata)
+        MetaSheet.__init__(self, ws, training_data)
         
     def create_roster(self, title):
         (row, ws) = self.create_sheet(title, want_everything = True)
         for mid in sorted(self.values, reverse=True):
             for sd in sorted(self.values[mid]):
                 for entry in self.values[mid][sd]:
-                    ws = self.create_entry(ws, entry, row)
+                    self.create_entry(ws, entry, row)
                     ws[f'J{row}'] = entry['stage']
                     ws[f'K{row}'] = entry['active']
 
@@ -128,9 +125,9 @@ class EverythingSheet(MetaSheet):
 
 class ActiveSheet(MetaSheet):
 
-    def __init__(self, wb, trainingdata):
+    def __init__(self, wb, training_data):
         ws = wb.create_sheet('Active')
-        MetaSheet.__init__(self, ws, trainingdata)
+        MetaSheet.__init__(self, ws, training_data)
         
     def create_roster(self, title):
         (row, ws) = self.create_sheet(title, want_everything = False)
@@ -141,15 +138,15 @@ class ActiveSheet(MetaSheet):
                     if entry['end_date'] > most_recent['end_date']:
                         most_recent   = entry
             if most_recent['end_date'] != now.date():
-                ws = self.create_entry(ws, most_recent, row)
+                self.create_entry(ws, most_recent, row)
                 row += 1
         return row
 
 class ExpiredSheet(MetaSheet):
 
-    def __init__(self, wb, trainingdata):
+    def __init__(self, wb, training_data):
         ws = wb.create_sheet('Expired')
-        MetaSheet.__init__(self, ws, trainingdata)
+        MetaSheet.__init__(self, ws, training_data)
         
     def create_roster(self, title):
         (row, ws) = self.create_sheet(title, want_everything = False)
@@ -161,6 +158,6 @@ class ExpiredSheet(MetaSheet):
                         if (entry['end_date'] > most_recent['end_date']) or (most_recent['end_date'] == now.date()):
                             most_recent = entry
             if most_recent['end_date'] != now.date():
-                ws = self.create_entry(ws, most_recent, row)
+                self.create_entry(ws, most_recent, row)
                 row += 1
         return row
