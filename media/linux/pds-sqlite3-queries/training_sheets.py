@@ -79,7 +79,7 @@ class MetaSheet:
                     (f'I{row}', 'Notes'                  ,   50),]
         if want_everything:
             columns.append((f'J{row}', 'Stage of Certification', 50))
-            columns.append((f'K{row}', 'Active Parishoner?'    , 50))
+            columns.append((f'K{row}', 'Involved?'             , 50))
 
         for cell,value,width in columns:
             ws[cell] = value
@@ -102,7 +102,6 @@ class MetaSheet:
         ws[f'F{row}'] = entry['weekend']
         ws[f'G{row}'] = entry['weekday']
         ws[f'H{row}'] = entry['homebound']
-        ws[f'I{row}'] = entry['note']
 
 class EverythingSheet(MetaSheet):
 
@@ -118,15 +117,15 @@ class EverythingSheet(MetaSheet):
                 for entry in self.values[mid][sd]:
                     self.create_entry(ws, entry, row)
                     ws[f'J{row}'] = entry['stage']
-                    ws[f'K{row}'] = entry['active']
+                    ws[f'K{row}'] = entry['involved']
 
                     row += 1
         return row
 
-class ActiveSheet(MetaSheet):
+class SchedulableSheet(MetaSheet):
 
     def __init__(self, wb, training_data):
-        ws = wb.create_sheet('Active')
+        ws = wb.create_sheet('Schedulable')
         MetaSheet.__init__(self, ws, training_data)
         
     def create_roster(self, title):
@@ -142,10 +141,10 @@ class ActiveSheet(MetaSheet):
                 row += 1
         return row
 
-class ExpiredSheet(MetaSheet):
+class NonSchedulableSheet(MetaSheet):
 
     def __init__(self, wb, training_data):
-        ws = wb.create_sheet('Expired')
+        ws = wb.create_sheet('NonSchedulable')
         MetaSheet.__init__(self, ws, training_data)
         
     def create_roster(self, title):
