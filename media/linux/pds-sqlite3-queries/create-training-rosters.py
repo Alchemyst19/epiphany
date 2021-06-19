@@ -26,7 +26,7 @@ from pprint import pprint
 from pprint import pformat
 
 import training_sheets
-from training_sheets import EverythingSheet, ActiveSheet, ExpiredSheet
+from training_sheets import EverythingSheet, SchedulableSheet, NonSchedulableSheet
 
 # Globals
 
@@ -34,9 +34,7 @@ gapp_id         = 'client_id.json'
 guser_cred_file = 'user-credentials.json'
 
 now = datetime.now()
-timestamp = ('{year:04}-{mon:02}-{day:02} {hour:02}:{min:02}'
-                .format(year=now.year, mon=now.month, day=now.day,
-                        hour=now.hour, min=now.minute))
+timestamp = (f'{now.year:04}-{now.month:02}-{now.day:02} {now.hour:02}:{now.minute:02}')
 
 trainings   = [
     {
@@ -46,84 +44,58 @@ trainings   = [
     },
 ]
 
-def pretty_member(member):
-    phones = list()
-    key = 'phones'
-    if key in member:
-        for phone in member[key]:
-            if phone['unlisted']:
-                continue
+def check_ministries(member):
+    if not member['Inactive']:
+        member['involved'] = True
 
-            val = '{ph} {type}'.format(ph=phone['number'], type=phone['type'])
-            phones.append(val)
-
-    ministries = {'weekday'     :   'No',
-                  'weekend'     :   'No',
-                  'homebound'   :   'No',}
     key = 'active_ministries'
     if key in member:
         for ministry in member[key]:
             if ministry['Description'] == 'Weekend Communion':
-                ministries['weekend'] = 'Yes'
+                member['weekend'] = 'Yes'
+            else: member['weekend'] = 'No'
             if ministry['Description'] == 'Weekday Communion':
-                ministries['weekday'] = 'Yes'
+                member['weekday'] = 'Yes'
+            else: member['weekday'] = 'No'
             if ministry['Description'] == 'Homebound Communion':
-                ministries['homebound'] = 'Yes'
-
-    email = PDSChurch.find_any_email(member)[0]
-
-    if PDSChurch.is_parishioner(member['family']) and (member['Deceased'] == False) and (member['Inactive'] == False):
-        active = "Yes"
-    else:
-        active = "No"
-
-    m = {
-        'mid'           :   member['MemRecNum'],
-        'name'          :   member['first']+' '+member['last'],
-        'email'         :   email,
-        'phones'        :   phones,
-        'active'        :   active,
-        'weekend'       :   ministries['weekend'],
-        'weekday'       :   ministries['weekday'],
-        'homebound'     :   ministries['homebound']
-    }
+                member['homebound'] = 'Yes'
+            else: member['homebound'] = 'No'
     
-    return m
+    return member
 
 def pds_find_training(pds_members, training_to_find, log):
     
     out = dict()
     reqcount = 0
 
-    for m in pds_members.values():
+    for member in pds_members.values():
         key = 'requirements'
-        if key not in m:
+        if key not in member:
             continue
 
-        for req in m[key]:
+        for req in member[key]:
             if(req['description'] != training_to_find['pds_type']):
                 continue
             reqcount += 1
-            mem = pretty_member(m)
             sd = req['start_date']
-            mid = mem['mid']
+            mid = member['MemRecNum']
             if mid not in out:
                 out[mid] = dict()
             if sd not in out[mid]:
                 out[mid][sd] = list()
+            member = check_ministries(member)
             out[mid][sd].append({
                 'mid'           :   mid,
-                'name'          :   mem['name'],
-                'email'         :   mem['email'],
-                'phone'         :   mem['phones'][0],
+                'name'          :   member['first']+' '+member['last'], 
+                'email'         :   PDSChurch.find_any_email(member)[0],
+                'phone'         :   PDSChurch.find_member_phone(member, 'Cell'),
                 'start_date'    :   sd,
                 'end_date'      :   req['end_date'],
                 'stage'         :   req['result'],
-                'active'        :   mem['active'],
-                'weekend'       :   mem['weekend'],
-                'weekday'       :   mem['weekday'],
-                'homebound'     :   mem['homebound'],
-                'note'          :   req['note'],
+                'involved'      :   member['involved'],
+                'weekend'       :   member['weekend'],
+                'weekday'       :   member['weekday'],
+                'homebound'     :   member['homebound'],
             })
     
     if reqcount == 0:
@@ -142,11 +114,11 @@ def write_xlsx(title, trainingdata, log):
     every = EverythingSheet(wb, trainingdata)
     every.create_roster(title)
 
-    active = ActiveSheet(wb, trainingdata)
-    active.create_roster(title)
+    schedulable = SchedulableSheet(wb, trainingdata)
+    schedulable.create_roster(title)
 
-    expired = ExpiredSheet(wb, trainingdata)
-    expired.create_roster(title)
+    nonschedulable = NonSchedulableSheet(wb, trainingdata)
+    nonschedulable.create_roster(title)
 
     wb.save(filename)
     log.debug(f'Wrote {filename}')
@@ -160,7 +132,7 @@ def create_roster(trainingdata, training, google, log, dry_run):
     
     # Create xlsx file
     filename = write_xlsx(training['title'], trainingdata, log)
-    log.info("Wrote temp XLSX file: {f}".format(f=filename))
+    log.info(f"Wrote temp XLSX file: {filename}")
 
     # Upload xlsx to Google
     if not dry_run:
@@ -184,8 +156,7 @@ def upload_overwrite(filename, google, file_id, log):
         gsheet_name = gsheet_name[:-5]
 
     try:
-        log.info('Uploading file update to Google file ID "{id}"'
-              .format(id=file_id))
+        log.info(f'Uploading file update to Google file ID {file_id}')
         metadata = {
             'name'     : gsheet_name,
             'mimeType' : Google.mime_types['sheet'],
@@ -199,8 +170,7 @@ def upload_overwrite(filename, google, file_id, log):
                                      media_body=media,
                                      supportsAllDrives=True,
                                      fields='id').execute()
-        log.debug('Successfully updated file: "{filename}" (ID: {id})'
-              .format(filename=filename, id=file['id']))
+        log.debug(f"Successfully updated file: {filename} (ID: {file['id']})")
 
     except:
         log.error('Google file update failed for some reason:')
