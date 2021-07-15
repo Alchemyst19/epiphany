@@ -53,36 +53,29 @@ you need to install some Python classes:
 
 """
 
-import sys
-
 import logging.handlers
 import httplib2
 import logging
 import sqlite3
 import json
 import time
+import sys
 import os
 
-# Find the path to the ECC module (by finding the root of the git
-# tree).  This is robust, but it's a little clunky. :-\
-try:
-    import subprocess
-    out = subprocess.run(['git', 'rev-parse', '--show-toplevel'],
-                         capture_output=True)
-    dirname = out.stdout.decode('utf-8').strip()
-    if not dirname:
-        raise Exception("Could not find git root.  Are you outside the git tree?")
-
-    moddir  = os.path.join(dirname, 'python')
-    sys.path.insert(0, moddir)
-    import ECC
-    import Google
-    import PDSChurch
-    import GoogleAuth
-except Exception as e:
-    sys.stderr.write("=== ERROR: Could not find common ECC Python module directory\n")
-    sys.stderr.write(f"{e}\n")
+# We assume that there is a "ecc-python-modules" sym link in this
+# directory that points to the directory with ECC.py and friends.
+moddir = os.path.join(os.getcwd(), 'ecc-python-modules')
+if not os.path.exists(moddir):
+    print("ERROR: Could not find the ecc-python-modules directory.")
+    print("ERROR: Please make a ecc-python-modules sym link and run again.")
     exit(1)
+
+sys.path.insert(0, moddir)
+
+import ECC
+import Google
+import PDSChurch
+import GoogleAuth
 
 import googleapiclient
 
@@ -126,7 +119,7 @@ def get_synchronizations():
         {
             'ministries' : [ '103-Worship Committee' ],
             'ggroup'     : f'worship-committee{ecc}',
-            'notify'     : f'linda{ecc},pds-google-sync{ecc}',
+            'notify'     : f'director-worship{ecc},pds-google-sync{ecc}',
         },
         {
             'ministries' : [ '104-Stewardship & E Committee' ],
@@ -167,70 +160,75 @@ def get_synchronizations():
         {
             'ministries' : [ '302-Bread Baking Ministry' ],
             'ggroup'     : f'breadmakers{ecc}',
-            'notify'     : f'linda{ecc},pds-google-sync{ecc}',
+            'notify'     : f'director-worship{ecc},pds-google-sync{ecc}',
         },
         {
             'ministries' : [ '304-Liturgical Planning' ],
             'ggroup'     : f'liturgy-planning{ecc}',
-            'notify'     : f'linda{ecc},pds-google-sync{ecc}',
+            'notify'     : f'director-worship{ecc},pds-google-sync{ecc}',
         },
         {
             'ministries' : [ '305-Movers Ministry' ],
             'ggroup'     : f'movers{ecc}',
-            'notify'     : f'linda{ecc},awsimpson57@gmail.com,pds-google-sync{ecc}',
+            'notify'     : f'director-worship{ecc},awsimpson57@gmail.com,pds-google-sync{ecc}',
         },
         {
             'ministries' : [ '309A-Acolyte Ministry 5:30P',
                              '309B-Acolyte Ministry  9:00A',
                              '309C-Acolyte Ministry 11:30A' ],
             'ggroup'     : f'acolytes{ecc}',
-            'notify'     : f'linda{ecc},pds-google-sync{ecc}',
+            'notify'     : f'director-worship{ecc},pds-google-sync{ecc}',
         },
         {
             'ministries' : [ '310-Adult Choir' ],
             'ggroup'     : f'choir{ecc}',
-            'notify'     : f'linda{ecc},faith@feetwashers.org,pds-google-sync{ecc}',
+            'notify'     : f'director-worship{ecc},faith@feetwashers.org,pds-google-sync{ecc}',
         },
         {
             'ministries' : [ '311-Bell Choir' ],
             'keywords'   : [ 'Bell choir email list' ],
             'ggroup'     : f'bell-ringers{ecc}',
-            'notify'     : f'linda{ecc},pds-google-sync{ecc}',
+            'notify'     : f'director-worship{ecc},pds-google-sync{ecc}',
         },
         {
             'ministries' : [ '313-Communion Ministers' ],
             'ggroup'     : f'communion-ministers{ecc}',
-            'notify'     : f'linda{ecc},stephen@feetwashers.org,pds-google-sync{ecc}',
+            'notify'     : f'director-worship{ecc},stephen@feetwashers.org,pds-google-sync{ecc}',
         },
         {
             'ministries' : [ '314-Communion Min. Coordinator'],
             'ggroup'     : f'communion-ministers-coordinators{ecc}',
-            'notify'     : f'linda{ecc},stephen@feetwashers.org,pds-google-sync{ecc}',
+            'notify'     : f'director-worship{ecc},stephen@feetwashers.org,pds-google-sync{ecc}',
         },
         {
             'ministries' : [ '315-Funeral Mass Ministry' ],
             'ggroup'     : f'funeral-mass-ministry{ecc}',
-            'notify'     : f'linda{ecc},pds-google-sync{ecc}',
+            'notify'     : f'director-worship{ecc},pds-google-sync{ecc}',
         },
         {
             'ministries' : [ '317-Instrumentalists & Cantors' ],
             'keywords'   : [ 'Musicians email list' ],
             'ggroup'     : f'musicians{ecc}',
-            'notify'     : f'linda{ecc},pds-google-sync{ecc}',
+            'notify'     : f'director-worship{ecc},pds-google-sync{ecc}',
         },
         {
             'ministries' : [ '318-Lectors  MASTER LIST' ],
             'ggroup'     : f'lectors{ecc}',
-            'notify'     : f'linda{ecc},pds-google-sync{ecc}',
+            'notify'     : f'director-worship{ecc},pds-google-sync{ecc}',
         },
         {
             'ministries' : [ '321-Prayer Chain Ministry' ],
             'ggroup'     : f'prayer-chain-ministry{ecc}',
-            'notify'     : f'linda{ecc},pds-google-sync{ecc}',
+            'notify'     : f'director-worship{ecc},pds-google-sync{ecc}',
         },
 
         #############################
 
+        {
+            'ministries' : [ '404-Welcome Desk' ],
+            'ggroup'     : f'welcome-desk{ecc}',
+            'notify'     : f'director-parish-engagement{ecc},pds-google-sync{ecc}',
+        },
         {
             'ministries' : [ '451-Livestream Team Ministry' ],
             'ggroup'     : f'livestream-team{ecc}',
@@ -314,32 +312,22 @@ def get_synchronizations():
             'ggroup'     : f'adult-formation-working-group{ecc}',
             'notify'     : f'lisa{ecc},pds-google-sync{ecc}',
         },
-        {
-            'ministries' : [ '813-Visual Faith Group' ],
-            'ggroup'     : f'visual-faith{ecc}',
-            'notify'     : f'lisa{ecc},pds-google-sync{ecc}',
-        },
 
         #############################
 
         {
             'ministries' : [ 'E-Taize Prayer' ],
             'ggroup'     : f'taizeprayer{ecc}',
-            'notify'     : f'linda{ecc},pds-google-sync{ecc}',
+            'notify'     : f'director-worship{ecc},pds-google-sync{ecc}',
         },
         {
             'ministries' : [ 'E-Soul Life' ],
             'ggroup'     : f'soullife{ecc}',
-            'notify'     : f'linda{ecc},pds-google-sync{ecc}',
+            'notify'     : f'director-worship{ecc},pds-google-sync{ecc}',
         },
 
         #############################
 
-        {
-            'keywords'   : [ '10 Pct Emergency Assistance' ],
-            'ggroup'     : f'10-percent-emergency-assistance{ecc}',
-            'notify'     : f'pastoral-associate-social-resp{ecc},pds-google-sync{ecc}',
-        },
         {
             'keywords'   : [ 'Apply@ECC email list' ],
             'ggroup'     : f'apply{ecc}',
@@ -351,35 +339,45 @@ def get_synchronizations():
             'notify'     : f'pds-google-sync{ecc}',
         },
         {
+            'keywords'   : [ 'Renovations@ECC email list' ],
+            'ggroup'     : f'renovations{ecc}',
+            'notify'     : f'mary{ecc},pds-google-sync{ecc}',
+        },
+        {
             'keywords'   : [ 'ECC Liturgy Plans editor' ],
             'ggroup'     : f'worship-liturgy-planning{ecc}',
-            'notify'     : f'linda{ecc},pds-google-sync{ecc}',
+            'notify'     : f'director-worship{ecc},pds-google-sync{ecc}',
         },
         {
             'keywords'   : [ 'ECC Liturgy Plans reader' ],
             'ggroup'     : f'worship-liturgy-planning-guest{ecc}',
-            'notify'     : f'linda{ecc},pds-google-sync{ecc}',
+            'notify'     : f'director-worship{ecc},pds-google-sync{ecc}',
         },
         {
             'keywords'   : [ 'ECC Musicians Info editor' ],
             'ggroup'     : f'music-ministry-musicians-information-editor{ecc}',
-            'notify'     : f'linda{ecc},pds-google-sync{ecc}',
+            'notify'     : f'director-worship{ecc},pds-google-sync{ecc}',
         },
         {
             # JMS To be deleted after 30 May 2020
             'keywords'   : [ 'ECC Sheet Music access' ],
             'ggroup'     : f'music-ministry-sheet-music-access{ecc}',
-            'notify'     : f'linda{ecc},pds-google-sync{ecc}',
+            'notify'     : f'director-worship{ecc},pds-google-sync{ecc}',
         },
         {
             'keywords'   : [ 'Homebound MP3 Recordings' ],
             'ggroup'     : f'mp3-uploads-group{ecc}',
-            'notify'     : f'linda{ecc},business-manager{ecc},pds-google-sync{ecc}',
+            'notify'     : f'director-worship{ecc},business-manager{ecc},pds-google-sync{ecc}',
         },
         {
             'keywords'   : [ 'Homebound recipients email lst', 'Homebound MP3 Recordings' ],
             'ggroup'     : f'ministry-homebound-liturgy-recipients{ecc}',
-            'notify'     : f'linda{ecc},pds-google-sync{ecc}',
+            'notify'     : f'director-worship{ecc},pds-google-sync{ecc}',
+        },
+        {
+            'keywords'   : [ 'Linda Retirement Planning' ],
+            'ggroup'     : f'linda-retirement-planning{ecc}',
+            'notify'     : f'mary{ecc},pds-google-sync{ecc}',
         },
         {
             'keywords'   : [ 'Liturgy Transcriptions' ],
@@ -389,6 +387,11 @@ def get_synchronizations():
         {
             'keywords'   : [ 'Maintenance staff email list' ],
             'ggroup'     : f'maintenance-staff{ecc}',
+            'notify'     : f'mary{ecc},pds-google-sync{ecc}',
+        },
+        {
+            'keywords'   : [ 'Office@ECC email list' ],
+            'ggroup'     : f'office-group{ecc}',
             'notify'     : f'mary{ecc},pds-google-sync{ecc}',
         },
         {
@@ -404,7 +407,7 @@ def get_synchronizations():
         {
             'keywords'   : [ 'Recordings access' ],
             'ggroup'     : f'recordings-viewer{ecc}',
-            'notify'     : f'linda{ecc},pds-google-sync{ecc}',
+            'notify'     : f'director-worship{ecc},pds-google-sync{ecc}',
         },
         {
             'keywords'   : [ 'Support staff email list' ],
@@ -414,7 +417,7 @@ def get_synchronizations():
         {
             'keywords'   : [ 'Wedding Ministries email list' ],
             'ggroup'     : f'wedding-ministries{ecc}',
-            'notify'     : f'linda{ecc},pds-google-sync{ecc}',
+            'notify'     : f'director-worship{ecc},pds-google-sync{ecc}',
         },
         {
             'keywords'   : [ 'Weekly Mass - Sometimes', 'Weekly Mass - Usually' ],
