@@ -38,8 +38,8 @@ timestamp = (f'{now.year:04}-{now.month:02}-{now.day:02} {now.hour:02}:{now.minu
 
 trainings   = [
     {
-        "title"     : 'Communion Minister',
-        "gsheet_id" : '1J_16q43O1sFWKuXm0uwkMtkBl9wliqplU0vnXY7fjUU',
+        "title"     : 'Communion Ministers',
+        "gsheet_id" : '1T4g6povnXPYOY8G4Oou7jq_Ere4jm4-z0Y37IKT-s20',
         'pds_type'  : 'Communion Minister training',
     },
 ]
@@ -107,7 +107,7 @@ def pds_find_training(pds_members, training_to_find, log):
 
 def write_xlsx(title, trainingdata, log):
 
-    filename = (f'{title} trainings as of {timestamp}.xlsx')
+    filename = (f'{title}')
 
     wb = Workbook()
 
